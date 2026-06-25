@@ -1,0 +1,31 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+  mode: "debug" # debug / release / test
+  read_timeout: 30
+  write_timeout: 30
+
+log:
+  level: "debug"   # debug / info / warn / error
+  file_path: "logs/app.log"
+  max_size: 100    # MB
+  max_backups: 10
+  max_age: 30      # days
+  compress: true
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "root"
+  database: "godan"
+  charset: "utf8mb4"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 3600 # seconds
+
+jwt:
+  access_secret: "godan-access-secret-change-in-production"
+  refresh_secret: "godan-refresh-secret-change-in-production"
+  access_expire: 7200   # seconds (2h)
+  refresh_expire: 604800 # seconds (7d)
