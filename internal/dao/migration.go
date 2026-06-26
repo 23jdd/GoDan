@@ -166,10 +166,49 @@ func AutoMigrate() error {
 			PRIMARY KEY (id),
 			INDEX idx_status (status)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS live_rooms (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			title VARCHAR(200) NOT NULL DEFAULT '',
+			cover_url VARCHAR(500) NOT NULL DEFAULT '',
+			stream_key VARCHAR(100) NOT NULL DEFAULT '',
+			status TINYINT NOT NULL DEFAULT 0,
+			viewer_count BIGINT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_user_id (user_id),
+			INDEX idx_status (status)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS gifts (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			name VARCHAR(50) NOT NULL DEFAULT '',
+			icon VARCHAR(10) NOT NULL DEFAULT '',
+			price INT NOT NULL DEFAULT 1,
+			PRIMARY KEY (id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS gift_records (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			room_id BIGINT UNSIGNED NOT NULL,
+			gift_id BIGINT UNSIGNED NOT NULL,
+			count INT NOT NULL DEFAULT 1,
+			total_coin INT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_room_id (room_id),
+			INDEX idx_user_id (user_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 	}
 
 	// add role column to users (if not exists)
 	database.DB.Exec("ALTER TABLE users ADD COLUMN role TINYINT NOT NULL DEFAULT 0")
+
+	// seed default gifts
+	SeedGifts()
 
 	for _, q := range queries {
 		if _, err := database.DB.Exec(q); err != nil {

@@ -47,6 +47,9 @@ func Setup(cfg *config.Config) *gin.Engine {
 	commentH := handler.NewCommentHandler(commentSvc)
 	activityH := handler.NewActivityHandler(activitySvc)
 	notifH := handler.NewNotificationHandler(notifSvc)
+	liveSvc := service.NewLiveService()
+	liveHub := handler.NewLiveHub()
+	liveH := handler.NewLiveHandler(liveSvc, liveHub)
 	adminSvc := service.NewAdminService()
 	adminH := handler.NewAdminHandler(adminSvc)
 
@@ -70,6 +73,9 @@ func Setup(cfg *config.Config) *gin.Engine {
 		api.GET("/danmakus/ws", func(c *gin.Context) {
 			danmakuHub.HandleWebSocket(c)
 		})
+		api.GET("/live/ws", func(c *gin.Context) {
+			liveHub.HandleWebSocket(c)
+		})
 
 		optional := api.Group("")
 		optional.Use(middleware.OptionalAuth(&cfg.JWT))
@@ -87,6 +93,10 @@ func Setup(cfg *config.Config) *gin.Engine {
 			optional.GET("/danmakus", danmakuH.GetDanmakus)
 			optional.GET("/comments", commentH.GetRootComments)
 			optional.GET("/comments/replies", commentH.GetReplies)
+			optional.GET("/live/list", liveH.GetLiveList)
+			optional.GET("/live/room/:id", liveH.GetRoomInfo)
+			optional.GET("/live/gifts", liveH.GetGiftList)
+			optional.GET("/live/room/:id/rank", liveH.GetGiftRank)
 		}
 
 		auth := api.Group("")
@@ -150,6 +160,13 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 			// 举报（普通用户可用）
 			auth.POST("/report", adminH.CreateReport)
+
+			// 直播
+			auth.POST("/live/room", liveH.CreateRoom)
+			auth.PUT("/live/room/:id", liveH.UpdateRoomInfo)
+			auth.POST("/live/room/:id/start", liveH.StartLive)
+			auth.POST("/live/room/:id/stop", liveH.StopLive)
+			auth.POST("/live/gift", liveH.SendGift)
 		}
 
 		// 管理员
