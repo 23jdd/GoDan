@@ -9,6 +9,7 @@ import (
 	"godan/internal/pkg/response"
 	"godan/internal/pkg/storage"
 	"godan/internal/service"
+	"time"
 )
 
 func Setup(cfg *config.Config) *gin.Engine {
@@ -18,6 +19,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	r.Use(middleware.Recovery())
 	r.Use(middleware.Logger())
 	r.Use(middleware.CORS())
+	r.Use(middleware.RateLimit(100, 60*time.Second, "ip")) // 全局限流: 100 req/min per IP
 
 	store, err := storage.New(&cfg.Storage)
 	if err != nil {

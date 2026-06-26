@@ -183,9 +183,6 @@
 - [ ] 熔断降级（如 Hystrix-Go / Sentinel）
 - [ ] 健康检查与优雅关闭（Graceful Shutdown）
 
-### 8.5 CDN
-- [ ] 视频/图片 CDN 加速（阿里云/腾讯云 CDN + 回源 MinIO）
-- [ ] 视频防盗链（Referer + 签名URL）
 
 ---
 

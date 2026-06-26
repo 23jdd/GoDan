@@ -13,6 +13,7 @@ import (
 	"godan/internal/config"
 	"godan/internal/dao"
 	"godan/internal/model"
+	"godan/internal/pkg/cache"
 	"godan/internal/pkg/errcode"
 	"godan/internal/pkg/logger"
 	"godan/internal/pkg/redis"
@@ -196,30 +197,60 @@ func (s *VideoService) delUploadState(uploadID string) {
 }
 
 func (s *VideoService) GetVideoDetail(videoID uint64) (*model.VideoDetail, *errcode.ErrorCode) {
-	v, err := dao.GetVideoDetail(videoID)
+	var detail model.VideoDetail
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("video:detail:%d", videoID)
+
+	err := cache.GetOrLoad(ctx, cacheKey, &detail, cache.WithTTL(10*time.Minute, 2*time.Minute), func() (interface{}, error) {
+		v, err := dao.GetVideoDetail(videoID)
+		if err != nil || v == nil || v.Status == model.VideoStatusRemoved {
+			return nil, fmt.Errorf("not found")
+		}
+		return v, nil
+	})
 	if err != nil {
-		logger.Log.Error("get video detail failed", zap.Error(err))
-		return nil, errcode.ErrInternal
-	}
-	if v == nil || v.Status == model.VideoStatusRemoved {
 		return nil, errcode.ErrVideoNotFound
 	}
+
 	dao.IncrVideoPlayCount(videoID)
-	v.PlayCount++
-	return v, nil
+	detail.PlayCount++
+
+	// update cache with new play count
+	cache.Set(ctx, cacheKey, &detail, cache.WithTTL(10*time.Minute, 2*time.Minute))
+
+	return &detail, nil
 }
 
 func (s *VideoService) GetHotVideos(page, pageSize int) ([]model.Video, int64, *errcode.ErrorCode) {
 	offset, limit := paginate(page, pageSize)
-	videos, total, err := dao.GetHotVideos(offset, limit)
+	cacheKey := fmt.Sprintf("video:hot:%d:%d", page, pageSize)
+
+	type hotResult struct {
+		Videos []model.Video
+		Total  int64
+	}
+
+	var result hotResult
+	ctx := context.Background()
+
+	err := cache.GetOrLoad(ctx, cacheKey, &result, cache.WithTTL(1*time.Minute, 30*time.Second), func() (interface{}, error) {
+		videos, total, err := dao.GetHotVideos(offset, limit)
+		if err != nil {
+			return nil, err
+		}
+		if videos == nil {
+			videos = []model.Video{}
+		}
+		return &hotResult{Videos: videos, Total: total}, nil
+	})
 	if err != nil {
 		logger.Log.Error("get hot videos failed", zap.Error(err))
 		return nil, 0, errcode.ErrInternal
 	}
-	if videos == nil {
-		videos = []model.Video{}
+	if result.Videos == nil {
+		result.Videos = []model.Video{}
 	}
-	return videos, total, nil
+	return result.Videos, result.Total, nil
 }
 
 func (s *VideoService) SearchVideos(keyword string, page, pageSize int) ([]model.Video, int64, *errcode.ErrorCode) {
@@ -297,6 +328,8 @@ func (s *VideoService) PublishVideo(userID, videoID uint64) *errcode.ErrorCode {
 		logger.Log.Error("publish video failed", zap.Error(err))
 		return errcode.ErrInternal
 	}
+	cache.Del(context.Background(), fmt.Sprintf("video:detail:%d", videoID))
+	cache.Del(context.Background(), fmt.Sprintf("user:profile:%d", userID))
 	s.activitySvc.CreateUploadActivity(userID, videoID)
 	return nil
 }

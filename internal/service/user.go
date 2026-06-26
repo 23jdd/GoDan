@@ -15,6 +15,7 @@ import (
 	"godan/internal/config"
 	"godan/internal/dao"
 	"godan/internal/model"
+	"godan/internal/pkg/cache"
 	"godan/internal/pkg/errcode"
 	pkgjwt "godan/internal/pkg/jwt"
 	"godan/internal/pkg/logger"
@@ -228,15 +229,21 @@ func (s *UserService) RefreshAccessToken(refreshToken string) (string, *errcode.
 }
 
 func (s *UserService) GetProfile(userID uint64) (*model.UserProfile, *errcode.ErrorCode) {
-	profile, err := dao.GetUserProfile(userID)
+	var profile model.UserProfile
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("user:profile:%d", userID)
+
+	err := cache.GetOrLoad(ctx, cacheKey, &profile, cache.WithTTL(30*time.Minute, 5*time.Minute), func() (interface{}, error) {
+		p, err := dao.GetUserProfile(userID)
+		if err != nil || p == nil {
+			return nil, fmt.Errorf("not found")
+		}
+		return p, nil
+	})
 	if err != nil {
-		logger.Log.Error("get profile failed", zap.Error(err))
-		return nil, errcode.ErrInternal
-	}
-	if profile == nil {
 		return nil, errcode.ErrUserNotFound
 	}
-	return profile, nil
+	return &profile, nil
 }
 
 func (s *UserService) UpdateProfile(userID uint64, username, avatar, bio string, birthday *time.Time, gender int8) *errcode.ErrorCode {
@@ -265,6 +272,7 @@ func (s *UserService) UpdateProfile(userID uint64, username, avatar, bio string,
 		logger.Log.Error("update user failed", zap.Error(err))
 		return errcode.ErrInternal
 	}
+	cache.Del(context.Background(), fmt.Sprintf("user:profile:%d", userID))
 	return nil
 }
 
