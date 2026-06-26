@@ -4,8 +4,6 @@ import (
 	"crypto/tls"
 	"godan/internal/config"
 	"net/smtp"
-	"strconv"
-	"strings"
 
 	"github.com/jordan-wright/email"
 )
