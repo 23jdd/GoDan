@@ -18,11 +18,13 @@ import (
 const dailyCoinLimit = 5
 
 type InteractionService struct {
-	cfg *config.Config
+	cfg        *config.Config
+	activitySvc *ActivityService
+	notifSvc    *NotificationService
 }
 
-func NewInteractionService(cfg *config.Config) *InteractionService {
-	return &InteractionService{cfg: cfg}
+func NewInteractionService(cfg *config.Config, activitySvc *ActivityService, notifSvc *NotificationService) *InteractionService {
+	return &InteractionService{cfg: cfg, activitySvc: activitySvc, notifSvc: notifSvc}
 }
 
 // --- Like ---
@@ -38,6 +40,17 @@ func (s *InteractionService) LikeVideo(userID, videoID uint64) *errcode.ErrorCod
 		return errcode.ErrInternal
 	}
 	dao.UpdateVideoLikeCount(videoID, 1)
+	s.activitySvc.CreateLikeActivity(userID, videoID)
+	if user, _ := dao.GetUserByID(userID); user != nil {
+		v, _ := dao.GetVideoByID(videoID)
+		if v != nil && v.UserID != userID {
+			s.notifSvc.Send(v.UserID, model.NotifLike,
+				"点赞通知",
+				user.Username+" 点赞了你的视频",
+				videoID,
+			)
+		}
+	}
 	return nil
 }
 
@@ -84,6 +97,7 @@ func (s *InteractionService) GiveCoin(userID, videoID uint64, count int) *errcod
 		return errcode.ErrInternal
 	}
 	dao.UpdateVideoCoinCount(videoID, count)
+	s.activitySvc.CreateCoinActivity(userID, videoID)
 	return nil
 }
 
@@ -151,6 +165,7 @@ func (s *InteractionService) AddToFolder(userID, folderID, videoID uint64) *errc
 		logger.Log.Error("add to folder failed", zap.Error(err))
 		return errcode.ErrInternal
 	}
+	s.activitySvc.CreateFavActivity(userID, videoID)
 	return nil
 }
 
@@ -181,12 +196,13 @@ func (s *InteractionService) GetFolderItems(folderID, page, pageSize int) ([]mod
 
 // --- Share ---
 
-func (s *InteractionService) ShareVideo(videoID uint64) (string, *errcode.ErrorCode) {
+func (s *InteractionService) ShareVideo(userID uint64, videoID uint64) (string, *errcode.ErrorCode) {
 	v, _ := dao.GetVideoByID(videoID)
 	if v == nil || v.Status != model.VideoStatusPublished {
 		return "", errcode.ErrVideoNotFound
 	}
 	dao.IncrVideoShareCount(videoID)
+	s.activitySvc.CreateShareActivity(userID, videoID)
 	return fmt.Sprintf("/video/%d", videoID), nil
 }
 

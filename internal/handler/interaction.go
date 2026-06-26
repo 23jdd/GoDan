@@ -148,7 +148,8 @@ func (h *InteractionHandler) ShareVideo(c *gin.Context) {
 		response.Error(c, errcode.ErrInvalidParams)
 		return
 	}
-	link, ec := h.svc.ShareVideo(videoID)
+	userID := middleware.GetUserID(c)
+	link, ec := h.svc.ShareVideo(userID, videoID)
 	if ec != nil {
 		response.Error(c, ec)
 		return

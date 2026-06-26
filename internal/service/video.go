@@ -31,13 +31,14 @@ type uploadState struct {
 }
 
 type VideoService struct {
-	store    storage.Storage
-	uploader storage.MultipartUploader
-	cfg      *config.Config
+	store       storage.Storage
+	uploader    storage.MultipartUploader
+	cfg         *config.Config
+	activitySvc *ActivityService
 }
 
-func NewVideoService(store storage.Storage, uploader storage.MultipartUploader, cfg *config.Config) *VideoService {
-	return &VideoService{store: store, uploader: uploader, cfg: cfg}
+func NewVideoService(store storage.Storage, uploader storage.MultipartUploader, cfg *config.Config, activitySvc *ActivityService) *VideoService {
+	return &VideoService{store: store, uploader: uploader, cfg: cfg, activitySvc: activitySvc}
 }
 
 func (s *VideoService) InitUpload(userID uint64, filename string, fileSize int64) (string, int, int, *errcode.ErrorCode) {
@@ -296,6 +297,7 @@ func (s *VideoService) PublishVideo(userID, videoID uint64) *errcode.ErrorCode {
 		logger.Log.Error("publish video failed", zap.Error(err))
 		return errcode.ErrInternal
 	}
+	s.activitySvc.CreateUploadActivity(userID, videoID)
 	return nil
 }
 

@@ -28,10 +28,13 @@ func Setup(cfg *config.Config) *gin.Engine {
 		panic("failed to init multipart uploader: " + err.Error())
 	}
 
+	activitySvc := service.NewActivityService()
+	notifSvc := service.NewNotificationService()
+
 	userSvc := service.NewUserService(cfg)
-	followSvc := service.NewFollowService()
-	videoSvc := service.NewVideoService(store, uploader, cfg)
-	interactionSvc := service.NewInteractionService(cfg)
+	followSvc := service.NewFollowService(notifSvc, activitySvc)
+	videoSvc := service.NewVideoService(store, uploader, cfg, activitySvc)
+	interactionSvc := service.NewInteractionService(cfg, activitySvc, notifSvc)
 	commentSvc := service.NewCommentService(cfg.SensitiveWords)
 
 	userH := handler.NewUserHandler(userSvc)
@@ -42,8 +45,11 @@ func Setup(cfg *config.Config) *gin.Engine {
 	danmakuH := handler.NewDanmakuHandler(interactionSvc)
 	danmakuHub := handler.NewDanmakuHub(interactionSvc)
 	commentH := handler.NewCommentHandler(commentSvc)
+	activityH := handler.NewActivityHandler(activitySvc)
+	notifH := handler.NewNotificationHandler(notifSvc)
+	adminSvc := service.NewAdminService()
+	adminH := handler.NewAdminHandler(adminSvc)
 
-	// 本地存储模式：静态文件服务
 	if cfg.Storage.Type == "local" {
 		r.Static(cfg.Storage.Local.URLPrefix, cfg.Storage.Local.Path)
 	}
@@ -54,7 +60,6 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 	api := r.Group("/api/v1")
 	{
-		// 公开接口
 		api.POST("/user/register", userH.Register)
 		api.POST("/user/register/code", userH.RegisterWithCode)
 		api.POST("/user/login", userH.Login)
@@ -62,12 +67,10 @@ func Setup(cfg *config.Config) *gin.Engine {
 		api.POST("/user/refresh", userH.RefreshToken)
 		api.POST("/user/code/send", userH.SendVerificationCode)
 
-		// 弹幕 WebSocket
 		api.GET("/danmakus/ws", func(c *gin.Context) {
 			danmakuHub.HandleWebSocket(c)
 		})
 
-		// 可选认证
 		optional := api.Group("")
 		optional.Use(middleware.OptionalAuth(&cfg.JWT))
 		{
@@ -75,6 +78,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 			optional.GET("/user/:id/followers", followH.GetFollowers)
 			optional.GET("/user/:id/followees", followH.GetFollowees)
 			optional.GET("/user/:id/videos", videoH.GetUserVideos)
+			optional.GET("/user/:id/activities", activityH.GetUserActivities)
 			optional.GET("/video/:id", videoH.GetVideoDetail)
 			optional.GET("/video/:id/related", videoH.GetRelatedVideos)
 			optional.GET("/videos", videoH.GetCategoryVideos)
@@ -85,7 +89,6 @@ func Setup(cfg *config.Config) *gin.Engine {
 			optional.GET("/comments/replies", commentH.GetReplies)
 		}
 
-		// 需要认证
 		auth := api.Group("")
 		auth.Use(middleware.Auth(&cfg.JWT))
 		{
@@ -117,7 +120,6 @@ func Setup(cfg *config.Config) *gin.Engine {
 			auth.DELETE("/video/:id", videoH.DeleteVideo)
 			auth.GET("/user/videos", videoH.GetMyVideos)
 
-			// 互动
 			auth.POST("/video/:id/like", interactionH.LikeVideo)
 			auth.DELETE("/video/:id/like", interactionH.CancelLike)
 			auth.GET("/video/:id/like/status", interactionH.LikeStatus)
@@ -125,7 +127,6 @@ func Setup(cfg *config.Config) *gin.Engine {
 			auth.GET("/user/coins/remaining", interactionH.RemainingCoins)
 			auth.POST("/video/:id/share", interactionH.ShareVideo)
 
-			// 收藏夹
 			auth.POST("/favorite/folder", interactionH.CreateFolder)
 			auth.PUT("/favorite/folder/:id", interactionH.UpdateFolder)
 			auth.DELETE("/favorite/folder/:id", interactionH.DeleteFolder)
@@ -134,11 +135,46 @@ func Setup(cfg *config.Config) *gin.Engine {
 			auth.POST("/favorite/remove", interactionH.RemoveFromFolder)
 			auth.GET("/favorite/folder/:id/items", interactionH.GetFolderItems)
 
-			// 评论
 			auth.POST("/comment", commentH.CreateComment)
 			auth.DELETE("/comment/:id", commentH.DeleteComment)
 			auth.POST("/comment/:id/like", commentH.LikeComment)
 			auth.DELETE("/comment/:id/like", commentH.UnlikeComment)
+
+			auth.GET("/timeline", activityH.GetTimeline)
+
+			auth.GET("/notifications", notifH.GetNotifications)
+			auth.GET("/notifications/unread", notifH.GetUnreadCount)
+			auth.POST("/notifications/:id/read", notifH.MarkRead)
+			auth.POST("/notifications/read-all", notifH.MarkAllRead)
+			auth.GET("/notifications/ws", notifH.HandleWebSocket)
+
+			// 举报（普通用户可用）
+			auth.POST("/report", adminH.CreateReport)
+		}
+
+		// 管理员
+		admin := api.Group("/admin")
+		admin.Use(middleware.Auth(&cfg.JWT))
+		admin.Use(middleware.Admin())
+		{
+			admin.GET("/dashboard", adminH.GetDashboard)
+
+			admin.GET("/users", adminH.GetUserList)
+			admin.POST("/user/:id/ban", adminH.BanUser)
+			admin.POST("/user/:id/unban", adminH.UnbanUser)
+			admin.PUT("/user/:id/role", adminH.SetRole)
+
+			admin.GET("/videos/pending", adminH.GetPendingVideos)
+			admin.POST("/video/:id/approve", adminH.ApproveVideo)
+			admin.POST("/video/:id/reject", adminH.RejectVideo)
+
+			admin.POST("/category", adminH.CreateCategory)
+			admin.PUT("/category/:id", adminH.UpdateCategory)
+			admin.DELETE("/category/:id", adminH.DeleteCategory)
+			admin.GET("/categories", adminH.GetCategories)
+
+			admin.GET("/reports", adminH.GetReports)
+			admin.PUT("/report/:id", adminH.HandleReport)
 		}
 	}
 

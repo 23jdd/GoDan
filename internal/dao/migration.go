@@ -122,7 +122,54 @@ func AutoMigrate() error {
 			PRIMARY KEY (id),
 			INDEX idx_video_position (video_id, position)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS activities (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			type TINYINT NOT NULL DEFAULT 0,
+			target_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			target_type TINYINT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_user_created (user_id, created_at)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS notifications (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			type TINYINT NOT NULL DEFAULT 0,
+			title VARCHAR(200) NOT NULL DEFAULT '',
+			content VARCHAR(500) NOT NULL DEFAULT '',
+			target_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			is_read TINYINT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_user_read (user_id, is_read, created_at)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS categories (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			name VARCHAR(50) NOT NULL DEFAULT '',
+			sort INT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS reports (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			target_type TINYINT NOT NULL DEFAULT 0,
+			target_id VARCHAR(50) NOT NULL DEFAULT '',
+			reason VARCHAR(500) NOT NULL DEFAULT '',
+			status TINYINT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_status (status)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 	}
+
+	// add role column to users (if not exists)
+	database.DB.Exec("ALTER TABLE users ADD COLUMN role TINYINT NOT NULL DEFAULT 0")
 
 	for _, q := range queries {
 		if _, err := database.DB.Exec(q); err != nil {

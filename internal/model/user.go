@@ -12,6 +12,7 @@ type User struct {
 	Bio          string     `db:"bio" json:"bio"`
 	Birthday     *time.Time `db:"birthday" json:"birthday"`
 	Gender       int8       `db:"gender" json:"gender"`
+	Role         int8       `db:"role" json:"role"` // 0:user, 1:admin, 2:super_admin
 	Status       int8       `db:"status" json:"status"`
 	CreatedAt    time.Time  `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time  `db:"updated_at" json:"updated_at"`

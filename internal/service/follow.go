@@ -10,10 +10,13 @@ import (
 	"godan/internal/pkg/errcode"
 )
 
-type FollowService struct{}
+type FollowService struct {
+	notifSvc *NotificationService
+	actSvc   *ActivityService
+}
 
-func NewFollowService() *FollowService {
-	return &FollowService{}
+func NewFollowService(notifSvc *NotificationService, actSvc *ActivityService) *FollowService {
+	return &FollowService{notifSvc: notifSvc, actSvc: actSvc}
 }
 
 func (s *FollowService) Follow(followerID, followeeID uint64) *errcode.ErrorCode {
@@ -33,6 +36,15 @@ func (s *FollowService) Follow(followerID, followeeID uint64) *errcode.ErrorCode
 		}
 		return errcode.ErrInternal
 	}
+
+	if follower, _ := dao.GetUserByID(followerID); follower != nil {
+		s.notifSvc.Send(followeeID, model.NotifFollow,
+			"关注通知",
+			follower.Username+" 关注了你",
+			0,
+		)
+	}
+
 	return nil
 }
 
