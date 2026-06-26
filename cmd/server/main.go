@@ -9,8 +9,10 @@ import (
 	"go.uber.org/zap"
 
 	"godan/internal/config"
+	"godan/internal/dao"
 	"godan/internal/pkg/database"
 	"godan/internal/pkg/logger"
+	"godan/internal/pkg/redis"
 	"godan/internal/router"
 )
 
@@ -25,15 +27,25 @@ func main() {
 	}
 	defer logger.Log.Sync()
 
-	logger.Log.Info("config loaded", zap.Any("config", cfg))
-
 	if err := database.InitMySQL(&cfg.MySQL); err != nil {
 		logger.Log.Fatal("failed to init mysql", zap.Error(err))
 	}
 	defer database.Close()
 	logger.Log.Info("mysql connected")
 
-	r := router.Setup(cfg.Server.Mode)
+	if err := dao.AutoMigrate(); err != nil {
+		logger.Log.Fatal("failed to run migration", zap.Error(err))
+	}
+	logger.Log.Info("migration completed")
+
+	if err := redis.Init(&cfg.Redis); err != nil {
+		logger.Log.Warn("redis init failed (non-fatal)", zap.Error(err))
+	} else {
+		defer redis.Close()
+		logger.Log.Info("redis connected")
+	}
+
+	r := router.Setup(cfg)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	logger.Log.Info("server starting", zap.String("addr", addr))

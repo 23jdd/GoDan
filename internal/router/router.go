@@ -1,33 +1,69 @@
 package router
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 
+	"godan/internal/config"
+	"godan/internal/handler"
 	"godan/internal/middleware"
 	"godan/internal/pkg/response"
+	"godan/internal/service"
 )
 
-func Setup(mode string) *gin.Engine {
-	gin.SetMode(mode)
+func Setup(cfg *config.Config) *gin.Engine {
+	gin.SetMode(cfg.Server.Mode)
 
 	r := gin.New()
-
 	r.Use(middleware.Recovery())
 	r.Use(middleware.Logger())
 	r.Use(middleware.CORS())
+
+	userSvc := service.NewUserService(cfg)
+	followSvc := service.NewFollowService()
+
+	userH := handler.NewUserHandler(userSvc)
+	followH := handler.NewFollowHandler(followSvc)
 
 	r.GET("/ping", func(c *gin.Context) {
 		response.Success(c, gin.H{"ping": "pong"})
 	})
 
-	r.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":    10005,
-			"message": "route not found",
-		})
-	})
+	api := r.Group("/api/v1")
+	{
+		// 公开接口
+		api.POST("/user/register", userH.Register)
+		api.POST("/user/login", userH.Login)
+		api.POST("/user/refresh", userH.RefreshToken)
+		api.POST("/user/code/send", userH.SendVerificationCode)
+
+		// 可选认证
+		optional := api.Group("")
+		optional.Use(middleware.OptionalAuth(&cfg.JWT))
+		{
+			optional.GET("/user/profile/:id", userH.GetUserProfile)
+			optional.GET("/user/:id/followers", followH.GetFollowers)
+			optional.GET("/user/:id/followees", followH.GetFollowees)
+		}
+
+		// 需要认证
+		auth := api.Group("")
+		auth.Use(middleware.Auth(&cfg.JWT))
+		{
+			auth.GET("/user/profile", userH.GetProfile)
+			auth.PUT("/user/profile", userH.UpdateProfile)
+			auth.PUT("/user/password", userH.ChangePassword)
+
+			auth.POST("/user/bind/email", userH.BindEmail)
+			auth.POST("/user/bind/phone", userH.BindPhone)
+
+			auth.POST("/user/follow", followH.Follow)
+			auth.POST("/user/unfollow", followH.Unfollow)
+			auth.GET("/user/mutual-follows", followH.GetMutualFollows)
+
+			auth.POST("/user/block", followH.Block)
+			auth.POST("/user/unblock", followH.Unblock)
+		}
+	}
 
 	return r
 }

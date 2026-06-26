@@ -24,6 +24,11 @@ var (
 	ErrTokenExpired    = &ErrorCode{20005, "token expired"}
 	ErrTokenInvalid    = &ErrorCode{20006, "token invalid"}
 	ErrUserBanned      = &ErrorCode{20007, "user is banned"}
+	ErrCodeSendTooFast = &ErrorCode{20008, "verification code sent too frequently"}
+	ErrSelfFollow      = &ErrorCode{20009, "cannot follow yourself"}
+	ErrAlreadyFollowed = &ErrorCode{20010, "already followed"}
+	ErrNotFollowed     = &ErrorCode{20011, "not followed"}
+	ErrSelfBlock       = &ErrorCode{20012, "cannot block yourself"}
 
 	// 视频
 	ErrVideoNotFound = &ErrorCode{30001, "video not found"}

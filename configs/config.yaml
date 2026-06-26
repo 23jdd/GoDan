@@ -24,8 +24,19 @@ mysql:
   max_idle_conns: 10
   conn_max_lifetime: 3600 # seconds
 
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+
 jwt:
   access_secret: "godan-access-secret-change-in-production"
   refresh_secret: "godan-refresh-secret-change-in-production"
   access_expire: 7200   # seconds (2h)
   refresh_expire: 604800 # seconds (7d)
+
+code:
+  expire: 300      # verification code TTL, seconds (5min)
+  send_interval: 60 # minimum interval between sending codes, seconds

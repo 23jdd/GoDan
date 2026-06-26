@@ -10,7 +10,9 @@ type Config struct {
 	Server ServerConfig `mapstructure:"server"`
 	Log    LogConfig    `mapstructure:"log"`
 	MySQL  MySQLConfig  `mapstructure:"mysql"`
+	Redis  RedisConfig  `mapstructure:"redis"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
+	Code   CodeConfig   `mapstructure:"code"`
 }
 
 type ServerConfig struct {
@@ -47,11 +49,28 @@ func (m MySQLConfig) DSN() string {
 		m.User, m.Password, m.Host, m.Port, m.Database, m.Charset)
 }
 
+type RedisConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
+	PoolSize int    `mapstructure:"pool_size"`
+}
+
+func (r RedisConfig) Addr() string {
+	return fmt.Sprintf("%s:%d", r.Host, r.Port)
+}
+
 type JWTConfig struct {
 	AccessSecret  string `mapstructure:"access_secret"`
 	RefreshSecret string `mapstructure:"refresh_secret"`
 	AccessExpire  int    `mapstructure:"access_expire"`
 	RefreshExpire int    `mapstructure:"refresh_expire"`
+}
+
+type CodeConfig struct {
+	Expire       int `mapstructure:"expire"`
+	SendInterval int `mapstructure:"send_interval"`
 }
 
 func Load(path string) (*Config, error) {
