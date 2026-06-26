@@ -29,6 +29,7 @@ func GetFollowTimeline(userID uint64, offset, limit int) ([]model.ActivityWithUs
 		INNER JOIN users u ON u.id = a.user_id
 		WHERE f.follower_id = ?
 		ORDER BY a.created_at DESC LIMIT ? OFFSET ?`, userID, limit, offset)
+
 	return list, total, err
 }
 

@@ -25,12 +25,14 @@ import (
 )
 
 func main() {
+	// Load config
 	cfg, err := config.Load("configs/config.yaml")
 	if err != nil {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
 	if err := logger.Init(&cfg.Log); err != nil {
+
 		panic(fmt.Sprintf("failed to init logger: %v", err))
 	}
 	defer logger.Log.Sync()
@@ -74,6 +76,6 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-
+	// shutdown
 	logger.Log.Info("shutting down server...")
 }
