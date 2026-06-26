@@ -50,6 +50,36 @@ func (h *UserHandler) Register(c *gin.Context) {
 	response.Success(c, gin.H{"user_id": user.ID})
 }
 
+// RegisterWithCode godoc
+// @Summary 邮箱/手机+验证码注册
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param body body RegisterWithCodeReq true "注册参数"
+// @Success 200 {object} response.Response
+// @Router /api/v1/user/register/code [post]
+func (h *UserHandler) RegisterWithCode(c *gin.Context) {
+	var req struct {
+		Username string `json:"username" binding:"required,min=2,max=30"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+		Password string `json:"password" binding:"required"`
+		Code     string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	user, ec := h.svc.RegisterWithCode(req.Username, req.Email, req.Phone, req.Password, req.Code)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{"user_id": user.ID})
+}
+
 // Login godoc
 // @Summary 用户登录
 // @Tags user
@@ -69,6 +99,39 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	user, accessToken, refreshToken, ec := h.svc.Login(req.Account, req.Password)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"user_id":       user.ID,
+		"username":      user.Username,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"expires_in":    h.svc.Cfg().JWT.AccessExpire,
+	})
+}
+
+// LoginByCode godoc
+// @Summary 验证码登录
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param body body LoginByCodeReq true "验证码登录参数"
+// @Success 200 {object} response.Response
+// @Router /api/v1/user/login/code [post]
+func (h *UserHandler) LoginByCode(c *gin.Context) {
+	var req struct {
+		Account string `json:"account" binding:"required"`
+		Code    string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	user, accessToken, refreshToken, ec := h.svc.LoginByCode(req.Account, req.Code)
 	if ec != nil {
 		response.Error(c, ec)
 		return
@@ -290,11 +353,15 @@ func (h *UserHandler) SendVerificationCode(c *gin.Context) {
 		return
 	}
 
-	ec := h.svc.SendVerificationCode(req.Target)
+	code, ec := h.svc.SendVerificationCode(req.Target)
 	if ec != nil {
 		response.Error(c, ec)
 		return
 	}
 
-	response.Success(c, gin.H{"message": "verification code sent"})
+	resp := gin.H{"message": "verification code sent"}
+	if h.svc.Cfg().Code.Debug {
+		resp["code"] = code
+	}
+	response.Success(c, resp)
 }

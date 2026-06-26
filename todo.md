@@ -53,7 +53,7 @@
 ## 阶段二：视频系统
 
 ### 2.1 视频投稿
-- [ ] 视频表设计（id / user_id / title / description / cover_url / video_url / duration / category_id / tags / status）
+- [ ] 视频表设计（id / user_id / objectid(title / description / cover_url / video_url / duration/ category_id / tags) / status）
 - [ ] 视频上传接口（分片上传 / 断点续传，使用 MinIO）
 - [ ] 视频转码（异步任务，使用 FFmpeg 转 H.264/AAC，多清晰度 360p/720p/1080p）
 - [ ] 封面图上传（上传时自动截取第N帧 + 手动上传）
@@ -66,7 +66,7 @@
 - [ ] 分区视频列表（按分类筛选 + 排序 + 分页）
 - [ ] 视频详情页（视频信息 + UP主信息 + 互动数据）
 - [ ] 视频播放（支持多清晰度切换）
-- [ ] 视频搜索（Elasticsearch / MySQL 全文索引，标题 + 简介 + 标签）
+- [ ] 视频搜索（mongodb 全文索引，标题 + 简介 + 标签）
 - [ ] 相关视频推荐（同分区 + 同标签）
 
 ### 2.3 视频互动

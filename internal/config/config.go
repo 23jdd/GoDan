@@ -70,8 +70,9 @@ type JWTConfig struct {
 }
 
 type CodeConfig struct {
-	Expire       int `mapstructure:"expire"`
-	SendInterval int `mapstructure:"send_interval"`
+	Expire       int  `mapstructure:"expire"`
+	SendInterval int  `mapstructure:"send_interval"`
+	Debug        bool `mapstructure:"debug"`
 }
 
 type StorageConfig struct {

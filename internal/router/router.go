@@ -23,13 +23,19 @@ func Setup(cfg *config.Config) *gin.Engine {
 	if err != nil {
 		panic("failed to init storage: " + err.Error())
 	}
+	uploader, err := storage.NewMultipartUploader(&cfg.Storage)
+	if err != nil {
+		panic("failed to init multipart uploader: " + err.Error())
+	}
 
 	userSvc := service.NewUserService(cfg)
 	followSvc := service.NewFollowService()
+	videoSvc := service.NewVideoService(store, uploader, cfg)
 
 	userH := handler.NewUserHandler(userSvc)
 	followH := handler.NewFollowHandler(followSvc)
 	uploadH := handler.NewUploadHandler(store)
+	videoH := handler.NewVideoHandler(videoSvc)
 
 	// 本地存储模式：静态文件服务
 	if cfg.Storage.Type == "local" {
@@ -44,7 +50,9 @@ func Setup(cfg *config.Config) *gin.Engine {
 	{
 		// 公开接口
 		api.POST("/user/register", userH.Register)
+		api.POST("/user/register/code", userH.RegisterWithCode)
 		api.POST("/user/login", userH.Login)
+		api.POST("/user/login/code", userH.LoginByCode)
 		api.POST("/user/refresh", userH.RefreshToken)
 		api.POST("/user/code/send", userH.SendVerificationCode)
 
@@ -76,6 +84,12 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 			auth.POST("/user/block", followH.Block)
 			auth.POST("/user/unblock", followH.Unblock)
+
+			auth.POST("/video/upload/init", videoH.InitUpload)
+			auth.POST("/video/upload/chunk", videoH.UploadChunk)
+			auth.POST("/video/upload/complete", videoH.CompleteUpload)
+			auth.GET("/video/upload/status", videoH.UploadStatus)
+			auth.POST("/video/upload/abort", videoH.AbortUpload)
 		}
 	}
 

@@ -13,6 +13,18 @@ type Storage interface {
 	Delete(ctx context.Context, key string) error
 }
 
+type MultipartUploader interface {
+	InitUpload(ctx context.Context, key string, contentType string) (string, error)
+	UploadPart(ctx context.Context, key string, uploadID string, partNumber int, reader io.Reader, size int64) error
+	CompleteUpload(ctx context.Context, key string, uploadID string, parts []UploadPart) (string, error)
+	AbortUpload(ctx context.Context, key string, uploadID string) error
+}
+
+type UploadPart struct {
+	PartNumber int `json:"part_number"`
+	PartSize   int `json:"part_size"`
+}
+
 func New(cfg *config.StorageConfig) (Storage, error) {
 	switch cfg.Type {
 	case "minio":
@@ -20,6 +32,19 @@ func New(cfg *config.StorageConfig) (Storage, error) {
 	default:
 		return newLocal(&cfg.Local)
 	}
+}
+
+func NewMultipartUploader(cfg *config.StorageConfig) (MultipartUploader, error) {
+	switch cfg.Type {
+	case "minio":
+		return newMinIO(&cfg.MinIO)
+	default:
+		return newLocalMultipart(&cfg.Local)
+	}
+}
+
+func GenVideoKey(userID uint64, filename string) string {
+	return fmt.Sprintf("videos/%d/%s", userID, filename)
 }
 
 func GenAvatarKey(userID uint64, ext string) string {

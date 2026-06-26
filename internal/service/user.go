@@ -77,6 +77,63 @@ func (s *UserService) Register(username, email, phone, password string) (*model.
 	return user, nil
 }
 
+func (s *UserService) RegisterWithCode(username, email, phone, password, code string) (*model.User, *errcode.ErrorCode) {
+	if strings.TrimSpace(username) == "" {
+		return nil, errcode.ErrInvalidParams
+	}
+	if email == "" && phone == "" {
+		return nil, errcode.ErrInvalidParams
+	}
+	if code == "" {
+		return nil, errcode.ErrInvalidParams
+	}
+	if !s.isPasswordValid(password) {
+		return nil, &errcode.ErrorCode{Code: 20000, Message: "password must be at least 6 characters with letters and numbers"}
+	}
+
+	if email != "" {
+		if !s.verifyCode("email:"+email, code) {
+			return nil, errcode.ErrCodeIncorrect
+		}
+		existing, _ := dao.GetUserByEmail(email)
+		if existing != nil {
+			return nil, errcode.ErrUserExists
+		}
+	}
+	if phone != "" {
+		if !s.verifyCode("phone:"+phone, code) {
+			return nil, errcode.ErrCodeIncorrect
+		}
+		existing, _ := dao.GetUserByPhone(phone)
+		if existing != nil {
+			return nil, errcode.ErrUserExists
+		}
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		logger.Log.Error("bcrypt hash failed", zap.Error(err))
+		return nil, errcode.ErrInternal
+	}
+
+	user := &model.User{
+		Username:     username,
+		Email:        email,
+		Phone:        phone,
+		PasswordHash: string(hash),
+		Status:       1,
+	}
+
+	id, err := dao.CreateUser(user)
+	if err != nil {
+		logger.Log.Error("create user failed", zap.Error(err))
+		return nil, errcode.ErrInternal
+	}
+
+	user.ID = id
+	return user, nil
+}
+
 func (s *UserService) Login(account, password string) (*model.User, string, string, *errcode.ErrorCode) {
 	var user *model.User
 	if s.isEmail(account) {
@@ -94,6 +151,45 @@ func (s *UserService) Login(account, password string) (*model.User, string, stri
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, "", "", errcode.ErrPasswordWrong
+	}
+
+	accessToken, err := pkgjwt.GenerateToken(user.ID, s.cfg.JWT.AccessSecret, s.cfg.JWT.AccessExpire)
+	if err != nil {
+		logger.Log.Error("generate access token failed", zap.Error(err))
+		return nil, "", "", errcode.ErrInternal
+	}
+
+	refreshToken, err := pkgjwt.GenerateToken(user.ID, s.cfg.JWT.RefreshSecret, s.cfg.JWT.RefreshExpire)
+	if err != nil {
+		logger.Log.Error("generate refresh token failed", zap.Error(err))
+		return nil, "", "", errcode.ErrInternal
+	}
+
+	return user, accessToken, refreshToken, nil
+}
+
+func (s *UserService) LoginByCode(account, code string) (*model.User, string, string, *errcode.ErrorCode) {
+	prefix := "email"
+	if !s.isEmail(account) {
+		prefix = "phone"
+	}
+
+	if !s.verifyCode(prefix+":"+account, code) {
+		return nil, "", "", errcode.ErrCodeIncorrect
+	}
+
+	var user *model.User
+	if prefix == "email" {
+		user, _ = dao.GetUserByEmail(account)
+	} else {
+		user, _ = dao.GetUserByPhone(account)
+	}
+
+	if user == nil {
+		return nil, "", "", errcode.ErrUserNotFound
+	}
+	if user.Status != 1 {
+		return nil, "", "", errcode.ErrUserBanned
 	}
 
 	accessToken, err := pkgjwt.GenerateToken(user.ID, s.cfg.JWT.AccessSecret, s.cfg.JWT.AccessExpire)
@@ -233,7 +329,7 @@ func (s *UserService) BindPhone(userID uint64, phone, code string) *errcode.Erro
 	return nil
 }
 
-func (s *UserService) SendVerificationCode(target string) *errcode.ErrorCode {
+func (s *UserService) SendVerificationCode(target string) (string, *errcode.ErrorCode) {
 	prefix := "email"
 	if !s.isEmail(target) {
 		prefix = "phone"
@@ -244,7 +340,7 @@ func (s *UserService) SendVerificationCode(target string) *errcode.ErrorCode {
 	ctx := context.Background()
 	exists, _ := redis.Exists(ctx, key)
 	if exists {
-		return errcode.ErrCodeSendTooFast
+		return "", errcode.ErrCodeSendTooFast
 	}
 
 	code := fmt.Sprintf("%06d", rand.Intn(1000000))
@@ -252,7 +348,7 @@ func (s *UserService) SendVerificationCode(target string) *errcode.ErrorCode {
 	codeKey := fmt.Sprintf("code:%s:%s", prefix, target)
 	if err := redis.Set(ctx, codeKey, code, time.Duration(s.cfg.Code.Expire)*time.Second); err != nil {
 		logger.Log.Error("redis set code failed", zap.Error(err))
-		return errcode.ErrInternal
+		return "", errcode.ErrInternal
 	}
 
 	if err := redis.Set(ctx, key, "1", time.Duration(s.cfg.Code.SendInterval)*time.Second); err != nil {
@@ -264,7 +360,7 @@ func (s *UserService) SendVerificationCode(target string) *errcode.ErrorCode {
 		zap.String("code", code),
 	)
 
-	return nil
+	return code, nil
 }
 
 func (s *UserService) verifyCode(key, code string) bool {

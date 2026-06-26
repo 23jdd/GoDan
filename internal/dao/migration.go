@@ -40,6 +40,31 @@ func AutoMigrate() error {
 			PRIMARY KEY (id),
 			UNIQUE KEY uk_user_blocked (user_id, blocked_user_id)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+		`CREATE TABLE IF NOT EXISTS videos (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			title VARCHAR(200) NOT NULL DEFAULT '',
+			description TEXT NOT NULL,
+			cover_url VARCHAR(500) NOT NULL DEFAULT '',
+			video_url VARCHAR(500) NOT NULL DEFAULT '',
+			duration INT UNSIGNED NOT NULL DEFAULT 0,
+			category_id INT UNSIGNED NOT NULL DEFAULT 0,
+			tags JSON,
+			file_size BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			status TINYINT NOT NULL DEFAULT 0,
+			play_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			like_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			coin_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			fav_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			share_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_user_id (user_id),
+			INDEX idx_category_id (category_id),
+			INDEX idx_created_at (created_at)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 	}
 
 	for _, q := range queries {

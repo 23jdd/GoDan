@@ -40,6 +40,7 @@ jwt:
 code:
   expire: 300      # verification code TTL, seconds (5min)
   send_interval: 60 # minimum interval between sending codes, seconds
+  debug: true         # debug mode: return code in response
 
 storage:
   type: "local"    # local / minio
