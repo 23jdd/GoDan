@@ -96,15 +96,3 @@ func (s *FollowService) Unblock(userID, blockedUserID uint64) *errcode.ErrorCode
 	}
 	return nil
 }
-
-func paginate(page, pageSize int) (offset, limit int) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
-	offset = (page - 1) * pageSize
-	limit = pageSize
-	return
-}

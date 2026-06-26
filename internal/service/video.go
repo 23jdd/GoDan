@@ -194,6 +194,161 @@ func (s *VideoService) delUploadState(uploadID string) {
 	redis.Del(context.Background(), fmt.Sprintf("video:upload:%s", uploadID))
 }
 
+func (s *VideoService) GetVideoDetail(videoID uint64) (*model.VideoDetail, *errcode.ErrorCode) {
+	v, err := dao.GetVideoDetail(videoID)
+	if err != nil {
+		logger.Log.Error("get video detail failed", zap.Error(err))
+		return nil, errcode.ErrInternal
+	}
+	if v == nil || v.Status == model.VideoStatusRemoved {
+		return nil, errcode.ErrVideoNotFound
+	}
+	dao.IncrVideoPlayCount(videoID)
+	v.PlayCount++
+	return v, nil
+}
+
+func (s *VideoService) GetHotVideos(page, pageSize int) ([]model.Video, int64, *errcode.ErrorCode) {
+	offset, limit := paginate(page, pageSize)
+	videos, total, err := dao.GetHotVideos(offset, limit)
+	if err != nil {
+		logger.Log.Error("get hot videos failed", zap.Error(err))
+		return nil, 0, errcode.ErrInternal
+	}
+	if videos == nil {
+		videos = []model.Video{}
+	}
+	return videos, total, nil
+}
+
+func (s *VideoService) SearchVideos(keyword string, page, pageSize int) ([]model.Video, int64, *errcode.ErrorCode) {
+	if keyword == "" {
+		return nil, 0, errcode.ErrInvalidParams
+	}
+	offset, limit := paginate(page, pageSize)
+	videos, total, err := dao.SearchVideos(keyword, offset, limit)
+	if err != nil {
+		logger.Log.Error("search videos failed", zap.Error(err))
+		return nil, 0, errcode.ErrInternal
+	}
+	if videos == nil {
+		videos = []model.Video{}
+	}
+	return videos, total, nil
+}
+
+func (s *VideoService) GetRelatedVideos(videoID uint64, page, pageSize int) ([]model.Video, *errcode.ErrorCode) {
+	v, err := dao.GetVideoByID(videoID)
+	if err != nil || v == nil || v.Status != model.VideoStatusPublished {
+		return nil, errcode.ErrVideoNotFound
+	}
+
+	offset, limit := paginate(page, pageSize)
+	videos, err := dao.GetRelatedVideos(videoID, v.CategoryID, v.Tags, offset, limit)
+	if err != nil {
+		logger.Log.Error("get related videos failed", zap.Error(err))
+		return nil, errcode.ErrInternal
+	}
+	if videos == nil {
+		videos = []model.Video{}
+	}
+	return videos, nil
+}
+
+func (s *VideoService) GetCategoryVideos(categoryID int, sort string, page, pageSize int) ([]model.Video, int64, *errcode.ErrorCode) {
+	offset, limit := paginate(page, pageSize)
+	videos, total, err := dao.GetVideosByCategory(categoryID, sort, offset, limit)
+	if err != nil {
+		logger.Log.Error("get category videos failed", zap.Error(err))
+		return nil, 0, errcode.ErrInternal
+	}
+	if videos == nil {
+		videos = []model.Video{}
+	}
+	return videos, total, nil
+}
+
+func (s *VideoService) UpdateVideoCover(userID, videoID uint64, coverURL string) *errcode.ErrorCode {
+	v, ec := s.checkOwner(userID, videoID)
+	if ec != nil {
+		return ec
+	}
+
+	if err := dao.UpdateVideoCover(videoID, coverURL); err != nil {
+		logger.Log.Error("update cover failed", zap.Error(err))
+		return errcode.ErrInternal
+	}
+
+	_ = v
+	return nil
+}
+
+func (s *VideoService) PublishVideo(userID, videoID uint64) *errcode.ErrorCode {
+	v, ec := s.checkOwner(userID, videoID)
+	if ec != nil {
+		return ec
+	}
+	if v.Status != model.VideoStatusPending && v.Status != model.VideoStatusRejected {
+		return &errcode.ErrorCode{Code: 30006, Message: "video status not allowed to publish"}
+	}
+
+	if err := dao.UpdateVideoStatus(videoID, model.VideoStatusPublished); err != nil {
+		logger.Log.Error("publish video failed", zap.Error(err))
+		return errcode.ErrInternal
+	}
+	return nil
+}
+
+func (s *VideoService) DeleteVideo(userID, videoID uint64) *errcode.ErrorCode {
+	v, ec := s.checkOwner(userID, videoID)
+	if ec != nil {
+		return ec
+	}
+	_ = v
+
+	if err := dao.UpdateVideoStatus(videoID, model.VideoStatusRemoved); err != nil {
+		logger.Log.Error("delete video failed", zap.Error(err))
+		return errcode.ErrInternal
+	}
+	return nil
+}
+
+func (s *VideoService) GetUserVideos(userID uint64, page, pageSize int) ([]model.Video, int64, *errcode.ErrorCode) {
+	offset, limit := paginate(page, pageSize)
+	videos, total, err := dao.GetVideosByUserID(userID, offset, limit)
+	if err != nil {
+		logger.Log.Error("get user videos failed", zap.Error(err))
+		return nil, 0, errcode.ErrInternal
+	}
+	if videos == nil {
+		videos = []model.Video{}
+	}
+	return videos, total, nil
+}
+
+func (s *VideoService) checkOwner(userID, videoID uint64) (*model.Video, *errcode.ErrorCode) {
+	v, err := dao.GetVideoByID(videoID)
+	if err != nil || v == nil {
+		return nil, errcode.ErrVideoNotFound
+	}
+	if v.UserID != userID {
+		return nil, errcode.ErrForbidden
+	}
+	return v, nil
+}
+
+func paginate(page, pageSize int) (offset, limit int) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 10
+	}
+	offset = (page - 1) * pageSize
+	limit = pageSize
+	return
+}
+
 func isVideoExt(ext string) bool {
 	switch ext {
 	case ".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".m4v":

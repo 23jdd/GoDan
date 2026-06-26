@@ -185,3 +185,259 @@ func (h *VideoHandler) AbortUpload(c *gin.Context) {
 
 	response.Success(c, nil)
 }
+
+// GetVideoDetail godoc
+// @Summary 获取视频详情
+// @Tags video
+// @Produce json
+// @Param id path int true "视频ID"
+// @Success 200 {object} response.Response
+// @Router /api/v1/video/{id} [get]
+func (h *VideoHandler) GetVideoDetail(c *gin.Context) {
+	videoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	v, ec := h.svc.GetVideoDetail(videoID)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, v)
+}
+
+// UpdateCover godoc
+// @Summary 更新视频封面
+// @Tags video
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "视频ID"
+// @Param body body UpdateCoverReq true "封面URL"
+// @Success 200 {object} response.Response
+// @Router /api/v1/video/{id}/cover [put]
+func (h *VideoHandler) UpdateCover(c *gin.Context) {
+	videoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+	var req struct {
+		CoverURL string `json:"cover_url" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	ec := h.svc.UpdateVideoCover(userID, videoID, req.CoverURL)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+// PublishVideo godoc
+// @Summary 发布视频（待审→已发布）
+// @Tags video
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "视频ID"
+// @Success 200 {object} response.Response
+// @Router /api/v1/video/{id}/publish [post]
+func (h *VideoHandler) PublishVideo(c *gin.Context) {
+	videoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	ec := h.svc.PublishVideo(userID, videoID)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+// DeleteVideo godoc
+// @Summary 删除视频（下架）
+// @Tags video
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "视频ID"
+// @Success 200 {object} response.Response
+// @Router /api/v1/video/{id} [delete]
+func (h *VideoHandler) DeleteVideo(c *gin.Context) {
+	videoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	ec := h.svc.DeleteVideo(userID, videoID)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+// GetUserVideos godoc
+// @Summary 获取用户投稿列表
+// @Tags video
+// @Produce json
+// @Param id path int true "用户ID"
+// @Param page query int false "页码"
+// @Param page_size query int false "每页数量"
+// @Success 200 {object} response.Response
+// @Router /api/v1/user/{id}/videos [get]
+func (h *VideoHandler) GetUserVideos(c *gin.Context) {
+	userID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	videos, total, ec := h.svc.GetUserVideos(userID, page, pageSize)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{"list": videos, "total": total, "page": page, "page_size": pageSize})
+}
+
+// GetCategoryVideos godoc
+// @Summary 获取分区视频列表
+// @Tags video
+// @Produce json
+// @Param category_id query int true "分区ID"
+// @Param page query int false "页码"
+// @Param page_size query int false "每页数量"
+// @Success 200 {object} response.Response
+// @Router /api/v1/videos [get]
+func (h *VideoHandler) GetCategoryVideos(c *gin.Context) {
+	categoryID, _ := strconv.Atoi(c.DefaultQuery("category_id", "0"))
+	sort := c.DefaultQuery("sort", "new") // new / hot
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	videos, total, ec := h.svc.GetCategoryVideos(categoryID, sort, page, pageSize)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{"list": videos, "total": total, "page": page, "page_size": pageSize})
+}
+
+// GetMyVideos godoc
+// @Summary 获取我的投稿列表
+// @Tags video
+// @Produce json
+// @Security ApiKeyAuth
+// @Param page query int false "页码"
+// @Param page_size query int false "每页数量"
+// @Success 200 {object} response.Response
+// @Router /api/v1/user/videos [get]
+func (h *VideoHandler) GetMyVideos(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	videos, total, ec := h.svc.GetUserVideos(userID, page, pageSize)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{"list": videos, "total": total, "page": page, "page_size": pageSize})
+}
+
+// GetHotVideos godoc
+// @Summary 首页热门推荐
+// @Tags video
+// @Produce json
+// @Param page query int false "页码"
+// @Param page_size query int false "每页数量"
+// @Success 200 {object} response.Response
+// @Router /api/v1/videos/hot [get]
+func (h *VideoHandler) GetHotVideos(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	videos, total, ec := h.svc.GetHotVideos(page, pageSize)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{"list": videos, "total": total, "page": page, "page_size": pageSize})
+}
+
+// SearchVideos godoc
+// @Summary 视频搜索
+// @Tags video
+// @Produce json
+// @Param q query string true "搜索关键词"
+// @Param page query int false "页码"
+// @Param page_size query int false "每页数量"
+// @Success 200 {object} response.Response
+// @Router /api/v1/videos/search [get]
+func (h *VideoHandler) SearchVideos(c *gin.Context) {
+	q := c.Query("q")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	videos, total, ec := h.svc.SearchVideos(q, page, pageSize)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{"list": videos, "total": total, "page": page, "page_size": pageSize})
+}
+
+// GetRelatedVideos godoc
+// @Summary 相关视频推荐
+// @Tags video
+// @Produce json
+// @Param id path int true "视频ID"
+// @Param page query int false "页码"
+// @Param page_size query int false "每页数量"
+// @Success 200 {object} response.Response
+// @Router /api/v1/video/{id}/related [get]
+func (h *VideoHandler) GetRelatedVideos(c *gin.Context) {
+	videoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	videos, ec := h.svc.GetRelatedVideos(videoID, page, pageSize)
+	if ec != nil {
+		response.Error(c, ec)
+		return
+	}
+
+	response.Success(c, gin.H{"list": videos, "page": page, "page_size": pageSize})
+}

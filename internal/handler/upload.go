@@ -87,3 +87,57 @@ func (h *UploadHandler) UploadAvatar(c *gin.Context) {
 
 	response.Success(c, gin.H{"url": url})
 }
+
+// UploadCover godoc
+// @Summary 上传视频封面
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Security ApiKeyAuth
+// @Param file formData file true "封面图片"
+// @Success 200 {object} response.Response
+// @Router /api/v1/video/cover/upload [post]
+func (h *UploadHandler) UploadCover(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		response.Error(c, errcode.ErrInvalidParams)
+		return
+	}
+	defer file.Close()
+
+	if header.Size > maxAvatarSize {
+		response.ErrorWithMsg(c, errcode.ErrInvalidParams, "file size exceeds 5MB")
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	contentType, ok := allowedTypes[ext]
+	if !ok {
+		response.ErrorWithMsg(c, errcode.ErrInvalidParams, "unsupported format, allowed: jpg/jpeg/png/gif/webp")
+		return
+	}
+
+	buf, err := io.ReadAll(file)
+	if err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+
+	detected := http.DetectContentType(buf)
+	if !strings.HasPrefix(detected, "image/") {
+		response.ErrorWithMsg(c, errcode.ErrInvalidParams, "invalid image file")
+		return
+	}
+
+	key := storage.GenCoverKey(userID, ext)
+	url, err := h.store.Upload(c.Request.Context(), key, strings.NewReader(string(buf)), int64(len(buf)), contentType)
+	if err != nil {
+		logger.Log.Error("upload cover failed", zap.Error(err))
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+
+	response.Success(c, gin.H{"url": url})
+}

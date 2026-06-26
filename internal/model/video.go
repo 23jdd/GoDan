@@ -29,3 +29,31 @@ const (
 	VideoStatusRejected  = 2
 	VideoStatusRemoved   = 3
 )
+
+type VideoDetail struct {
+	ID          uint64    `json:"id"`
+	UserID      uint64    `json:"user_id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	CoverURL    string    `json:"cover_url"`
+	VideoURL    string    `json:"video_url"`
+	Duration    int       `json:"duration"`
+	CategoryID  int       `json:"category_id"`
+	Tags        string    `json:"tags"`
+	FileSize    int64     `json:"file_size"`
+	Status      int8      `json:"status"`
+	PlayCount   int64     `json:"play_count"`
+	LikeCount   int64     `json:"like_count"`
+	CoinCount   int64     `json:"coin_count"`
+	FavCount    int64     `json:"fav_count"`
+	ShareCount  int64     `json:"share_count"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Author      Author    `json:"author"`
+}
+
+type Author struct {
+	ID       uint64 `json:"id"`
+	Username string `json:"username"`
+	Avatar   string `json:"avatar"`
+}

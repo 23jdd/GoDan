@@ -65,6 +65,63 @@ func AutoMigrate() error {
 			INDEX idx_category_id (category_id),
 			INDEX idx_created_at (created_at)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+		`CREATE TABLE IF NOT EXISTS video_likes (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			video_id BIGINT UNSIGNED NOT NULL,
+			type TINYINT NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			UNIQUE KEY uk_user_video (user_id, video_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS video_coins (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			video_id BIGINT UNSIGNED NOT NULL,
+			count INT UNSIGNED NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_user_date (user_id, created_at),
+			INDEX idx_video_id (video_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS favorite_folders (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id BIGINT UNSIGNED NOT NULL,
+			name VARCHAR(50) NOT NULL DEFAULT '',
+			description VARCHAR(200) NOT NULL DEFAULT '',
+			is_public TINYINT NOT NULL DEFAULT 0,
+			count INT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_user_id (user_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS favorite_items (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			folder_id BIGINT UNSIGNED NOT NULL,
+			video_id BIGINT UNSIGNED NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			UNIQUE KEY uk_folder_video (folder_id, video_id),
+			INDEX idx_folder_id (folder_id)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+		`CREATE TABLE IF NOT EXISTS danmakus (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			video_id BIGINT UNSIGNED NOT NULL,
+			user_id BIGINT UNSIGNED NOT NULL,
+			content VARCHAR(200) NOT NULL DEFAULT '',
+			color VARCHAR(20) NOT NULL DEFAULT '#FFFFFF',
+			type TINYINT NOT NULL DEFAULT 0,
+			position INT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			INDEX idx_video_position (video_id, position)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 	}
 
 	for _, q := range queries {

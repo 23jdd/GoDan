@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"godan/internal/config"
 )
@@ -49,4 +50,8 @@ func GenVideoKey(userID uint64, filename string) string {
 
 func GenAvatarKey(userID uint64, ext string) string {
 	return fmt.Sprintf("avatars/%d%s", userID, ext)
+}
+
+func GenCoverKey(userID uint64, ext string) string {
+	return fmt.Sprintf("covers/%d_%d%s", userID, time.Now().UnixNano(), ext)
 }
