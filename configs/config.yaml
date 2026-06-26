@@ -40,3 +40,16 @@ jwt:
 code:
   expire: 300      # verification code TTL, seconds (5min)
   send_interval: 60 # minimum interval between sending codes, seconds
+
+storage:
+  type: "local"    # local / minio
+  local:
+    path: "uploads"
+    url_prefix: "/static"
+  minio:
+    endpoint: "127.0.0.1:9000"
+    access_key: "minioadmin"
+    secret_key: "minioadmin"
+    bucket: "godan"
+    use_ssl: false
+    url_expire: 3600 # presigned URL expire seconds

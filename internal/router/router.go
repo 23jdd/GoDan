@@ -7,6 +7,7 @@ import (
 	"godan/internal/handler"
 	"godan/internal/middleware"
 	"godan/internal/pkg/response"
+	"godan/internal/pkg/storage"
 	"godan/internal/service"
 )
 
@@ -18,11 +19,22 @@ func Setup(cfg *config.Config) *gin.Engine {
 	r.Use(middleware.Logger())
 	r.Use(middleware.CORS())
 
+	store, err := storage.New(&cfg.Storage)
+	if err != nil {
+		panic("failed to init storage: " + err.Error())
+	}
+
 	userSvc := service.NewUserService(cfg)
 	followSvc := service.NewFollowService()
 
 	userH := handler.NewUserHandler(userSvc)
 	followH := handler.NewFollowHandler(followSvc)
+	uploadH := handler.NewUploadHandler(store)
+
+	// 本地存储模式：静态文件服务
+	if cfg.Storage.Type == "local" {
+		r.Static(cfg.Storage.Local.URLPrefix, cfg.Storage.Local.Path)
+	}
 
 	r.GET("/ping", func(c *gin.Context) {
 		response.Success(c, gin.H{"ping": "pong"})
@@ -49,6 +61,8 @@ func Setup(cfg *config.Config) *gin.Engine {
 		auth := api.Group("")
 		auth.Use(middleware.Auth(&cfg.JWT))
 		{
+			auth.POST("/upload/avatar", uploadH.UploadAvatar)
+
 			auth.GET("/user/profile", userH.GetProfile)
 			auth.PUT("/user/profile", userH.UpdateProfile)
 			auth.PUT("/user/password", userH.ChangePassword)

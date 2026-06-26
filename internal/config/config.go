@@ -13,6 +13,7 @@ type Config struct {
 	Redis  RedisConfig  `mapstructure:"redis"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
 	Code   CodeConfig   `mapstructure:"code"`
+	Storage StorageConfig `mapstructure:"storage"`
 }
 
 type ServerConfig struct {
@@ -71,6 +72,26 @@ type JWTConfig struct {
 type CodeConfig struct {
 	Expire       int `mapstructure:"expire"`
 	SendInterval int `mapstructure:"send_interval"`
+}
+
+type StorageConfig struct {
+	Type  string            `mapstructure:"type"`
+	Local LocalStorageConfig `mapstructure:"local"`
+	MinIO MinIOConfig       `mapstructure:"minio"`
+}
+
+type LocalStorageConfig struct {
+	Path      string `mapstructure:"path"`
+	URLPrefix string `mapstructure:"url_prefix"`
+}
+
+type MinIOConfig struct {
+	Endpoint  string `mapstructure:"endpoint"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
+	Bucket    string `mapstructure:"bucket"`
+	UseSSL    bool   `mapstructure:"use_ssl"`
+	URLExpire int    `mapstructure:"url_expire"`
 }
 
 func Load(path string) (*Config, error) {
