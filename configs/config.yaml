@@ -54,3 +54,13 @@ storage:
     bucket: "godan"
     use_ssl: false
     url_expire: 3600 # presigned URL expire seconds
+
+mongodb:
+  uri: "mongodb://127.0.0.1:27017"
+  database: "godan"
+  pool_size: 20
+
+sensitive_words:
+  - "fuck"
+  - "shit"
+  - "damn"

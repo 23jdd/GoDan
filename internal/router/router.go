@@ -32,6 +32,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	followSvc := service.NewFollowService()
 	videoSvc := service.NewVideoService(store, uploader, cfg)
 	interactionSvc := service.NewInteractionService(cfg)
+	commentSvc := service.NewCommentService(cfg.SensitiveWords)
 
 	userH := handler.NewUserHandler(userSvc)
 	followH := handler.NewFollowHandler(followSvc)
@@ -40,6 +41,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	interactionH := handler.NewInteractionHandler(interactionSvc)
 	danmakuH := handler.NewDanmakuHandler(interactionSvc)
 	danmakuHub := handler.NewDanmakuHub(interactionSvc)
+	commentH := handler.NewCommentHandler(commentSvc)
 
 	// 本地存储模式：静态文件服务
 	if cfg.Storage.Type == "local" {
@@ -79,6 +81,8 @@ func Setup(cfg *config.Config) *gin.Engine {
 			optional.GET("/videos/hot", videoH.GetHotVideos)
 			optional.GET("/videos/search", videoH.SearchVideos)
 			optional.GET("/danmakus", danmakuH.GetDanmakus)
+			optional.GET("/comments", commentH.GetRootComments)
+			optional.GET("/comments/replies", commentH.GetReplies)
 		}
 
 		// 需要认证
@@ -129,6 +133,12 @@ func Setup(cfg *config.Config) *gin.Engine {
 			auth.POST("/favorite/add", interactionH.AddToFolder)
 			auth.POST("/favorite/remove", interactionH.RemoveFromFolder)
 			auth.GET("/favorite/folder/:id/items", interactionH.GetFolderItems)
+
+			// 评论
+			auth.POST("/comment", commentH.CreateComment)
+			auth.DELETE("/comment/:id", commentH.DeleteComment)
+			auth.POST("/comment/:id/like", commentH.LikeComment)
+			auth.DELETE("/comment/:id/like", commentH.UnlikeComment)
 		}
 	}
 

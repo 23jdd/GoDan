@@ -21,6 +21,7 @@ type minioStore struct {
 }
 
 func newMinIO(cfg *config.MinIOConfig) (*minioStore, error) {
+	// creat client
 	client, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
 		Secure: cfg.UseSSL,
@@ -31,9 +32,11 @@ func newMinIO(cfg *config.MinIOConfig) (*minioStore, error) {
 
 	ctx := context.Background()
 	exists, err := client.BucketExists(ctx, cfg.Bucket)
+
 	if err != nil {
 		return nil, fmt.Errorf("minio bucket check error: %w", err)
 	}
+	// is exist
 	if !exists {
 		if err := client.MakeBucket(ctx, cfg.Bucket, minio.MakeBucketOptions{}); err != nil {
 			return nil, fmt.Errorf("minio create bucket error: %w", err)
@@ -63,7 +66,7 @@ func (m *minioStore) Upload(ctx context.Context, key string, reader io.Reader, s
 	if err != nil {
 		return "", fmt.Errorf("minio upload error: %w", err)
 	}
-
+    
 	reqParams := make(url.Values)
 	presignedURL, err := m.client.PresignedGetObject(ctx, m.bucket, key, m.urlExpire, reqParams)
 	if err != nil {

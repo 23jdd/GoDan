@@ -6,64 +6,64 @@
 
 ## 阶段零：项目初始化
 
-- [ ] 初始化 Go Module（`go mod init`）
-- [ ] 搭建项目目录结构（cmd / internal / pkg / api / configs / scripts / docs）
-- [ ] 编写 Makefile（build / run / test / lint / migrate）
-- [ ] 配置 .gitignore（二进制文件、IDE、临时文件等）
-- [ ] 选择并引入 Web 框架（如 Gin / Echo / Fiber）
-- [ ] 选择并引入 ORM（如 GORM / Ent）
-- [ ] 配置日志库（如 Zap / Logrus）
-- [ ] 配置管理（Viper + YAML 配置文件）
-- [ ] 统一错误码与响应格式设计
-- [ ] 开发环境 Docker Compose（MySQL / Redis / MinIO / RabbitMQ）
+- [x] 初始化 Go Module（`go mod init`）
+- [x] 搭建项目目录结构（cmd / internal / pkg / api / configs / scripts / docs）
+- [x] 编写 Makefile（build / run / test / lint / migrate）
+- [x] 配置 .gitignore（二进制文件、IDE、临时文件等）
+- [x] 选择并引入 Web 框架（如 Gin / Echo / Fiber）
+- [x] 选择并引入 ORM（如 GORM / Ent）
+- [x] 配置日志库（如 Zap / Logrus）
+- [x] 配置管理（Viper + YAML 配置文件）
+- [x] 统一错误码与响应格式设计
+- [x] 开发环境 Docker Compose（MySQL / Redis / MinIO / RabbitMQ）
 
 ---
 
 ## 阶段一：用户系统
 
 ### 1.1 用户注册与登录
-- [ ] 用户表设计（id / username / email / phone / password_hash / avatar / bio / birthday / gender / status）
-- [ ] 邮箱+验证码注册（整合 Redis 存储验证码，设置过期时间）
-- [ ] 手机号+验证码注册
-- [ ] 密码登录（bcrypt 加密，JWT 双 Token 机制：Access Token + Refresh Token）
-- [ ] 手机验证码登录
-- [ ] 邮箱验证码登录
-- [ ] 密码强度校验与加密存储
-- [ ] 登录状态保持（JWT Token 签发与解析中间件）
+- [x] 用户表设计（id / username / email / phone / password_hash / avatar / bio / birthday / gender / status）
+- [x] 邮箱+验证码注册（整合 Redis 存储验证码，设置过期时间）
+- [x] 手机号+验证码注册
+- [x] 密码登录（bcrypt 加密，JWT 双 Token 机制：Access Token + Refresh Token）
+- [x] 手机验证码登录
+- [x] 邮箱验证码登录
+- [x] 密码强度校验与加密存储
+- [x] 登录状态保持（JWT Token 签发与解析中间件）
 
 ### 1.2 用户信息管理
-- [ ] 获取当前用户信息
-- [ ] 修改个人资料（昵称、头像、简介、生日、性别）
-- [ ] 头像上传（MinIO / 本地存储）
-- [ ] 修改密码（旧密码验证 + 新密码设置）
-- [ ] 绑定/换绑手机号
-- [ ] 绑定/换绑邮箱
-- [ ] 实名认证接口（姓名 + 身份证号，预留）
+- [x] 获取当前用户信息
+- [x] 修改个人资料（昵称、头像、简介、生日、性别）
+- [x] 头像上传（MinIO / 本地存储）
+- [x] 修改密码（旧密码验证 + 新密码设置）
+- [x] 绑定/换绑手机号
+- [x] 绑定/换绑邮箱
+- [x] 实名认证接口（姓名 + 身份证号，预留）
 
 ### 1.3 用户关系
-- [ ] 关注用户 / 取消关注
-- [ ] 获取关注列表（分页）
-- [ ] 获取粉丝列表（分页）
-- [ ] 获取互相关注列表
-- [ ] 用户主页（基本信息 + 投稿数 + 粉丝数 + 关注数）
-- [ ] 黑名单功能（拉黑/取消拉黑，被拉黑者无法评论/私信）
+- [x] 关注用户 / 取消关注
+- [x] 获取关注列表（分页）
+- [x] 获取粉丝列表（分页）
+- [x] 获取互相关注列表
+- [x] 用户主页（基本信息 + 投稿数 + 粉丝数 + 关注数）
+- [x] 黑名单功能（拉黑/取消拉黑，被拉黑者无法评论/私信）
 
 ---
 
 ## 阶段二：视频系统
 
 ### 2.1 视频投稿
-- [ ] 视频表设计（id / user_id / objectid(title / description / cover_url / video_url / duration/ category_id / tags) / status）
-- [ ] 视频上传接口（分片上传 / 断点续传，使用 MinIO）
-- [ ] 视频转码（异步任务，使用 FFmpeg 转 H.264/AAC，多清晰度 360p/720p/1080p）
-- [ ] 封面图上传（上传时自动截取第N帧 + 手动上传）
-- [ ] 视频信息提交（标题、简介、分区、标签）
-- [ ] 视频审核（先审后发 / 先发后审，敏感词过滤 + 人工审核预留）
-- [ ] 视频状态流转（待审核 -> 已发布 / 审核不通过 -> 已下架 / 已删除）
+- [x] 视频表设计（id / user_id / objectid(title / description / cover_url / video_url / duration/ category_id / tags) / status）
+- [x] 视频上传接口（分片上传 / 断点续传，使用 MinIO）
+- [x] 视频转码（异步任务，使用 FFmpeg 转 H.264/AAC，多清晰度 360p/720p/1080p）
+- [x] 封面图上传（上传时自动截取第N帧 + 手动上传）
+- [x] 视频信息提交（标题、简介、分区、标签）
+- [x] 视频审核（先审后发 / 先发后审，敏感词过滤 + 人工审核预留）
+- [x] 视频状态流转（待审核 -> 已发布 / 审核不通过 -> 已下架 / 已删除）
 
 ### 2.2 视频展示
-- [ ] 首页推荐视频流（推荐算法基础版：热度 + 时间衰减）
-- [ ] 分区视频列表（按分类筛选 + 排序 + 分页）
+- [x] 首页推荐视频流（推荐算法基础版：热度 + 时间衰减）
+- [x] 分区视频列表（按分类筛选 + 排序 + 分页）
 - [ ] 视频详情页（视频信息 + UP主信息 + 互动数据）
 - [ ] 视频播放（支持多清晰度切换）
 - [ ] 视频搜索（mongodb 全文索引，标题 + 简介 + 标签）

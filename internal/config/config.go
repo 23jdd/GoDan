@@ -13,7 +13,9 @@ type Config struct {
 	Redis  RedisConfig  `mapstructure:"redis"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
 	Code   CodeConfig   `mapstructure:"code"`
-	Storage StorageConfig `mapstructure:"storage"`
+	Storage        StorageConfig `mapstructure:"storage"`
+	MongoDB        MongoDBConfig `mapstructure:"mongodb"`
+	SensitiveWords []string      `mapstructure:"sensitive_words"`
 }
 
 type ServerConfig struct {
@@ -93,6 +95,12 @@ type MinIOConfig struct {
 	Bucket    string `mapstructure:"bucket"`
 	UseSSL    bool   `mapstructure:"use_ssl"`
 	URLExpire int    `mapstructure:"url_expire"`
+}
+
+type MongoDBConfig struct {
+	URI      string `mapstructure:"uri"`
+	Database string `mapstructure:"database"`
+	PoolSize int    `mapstructure:"pool_size"`
 }
 
 func Load(path string) (*Config, error) {

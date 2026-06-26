@@ -12,6 +12,7 @@ import (
 	"godan/internal/dao"
 	"godan/internal/pkg/database"
 	"godan/internal/pkg/logger"
+	"godan/internal/pkg/mongodb"
 	"godan/internal/pkg/redis"
 	"godan/internal/router"
 )
@@ -43,6 +44,13 @@ func main() {
 	} else {
 		defer redis.Close()
 		logger.Log.Info("redis connected")
+	}
+
+	if err := mongodb.Init(&cfg.MongoDB); err != nil {
+		logger.Log.Warn("mongodb init failed (non-fatal)", zap.Error(err))
+	} else {
+		defer mongodb.Close()
+		logger.Log.Info("mongodb connected")
 	}
 
 	r := router.Setup(cfg)
