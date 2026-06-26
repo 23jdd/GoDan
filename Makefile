@@ -1,4 +1,4 @@
-.PHONY: build run test lint clean
+.PHONY: build run test lint clean swagger
 
 APP_NAME = godan
 BUILD_DIR = bin
@@ -24,3 +24,6 @@ tidy:
 
 vet:
 	go vet ./...
+
+swagger:
+	cd $(CMD_DIR) && swag init --parseDependency --parseInternal

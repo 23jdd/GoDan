@@ -1,3 +1,10 @@
+// @title           GoDan API
+// @version         1.0
+// @description     仿B站视频分享平台 API 文档
+// @contact.name    GoDan
+// @host            localhost:8080
+// @BasePath        /api/v1
+
 package main
 
 import (

@@ -1,0 +1,10 @@
+basePath: /api/v1
+host: localhost:8080
+info:
+  contact:
+    name: GoDan
+  description: 仿B站视频分享平台 API 文档
+  title: GoDan API
+  version: "1.0"
+paths: {}
+swagger: "2.0"

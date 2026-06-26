@@ -2,7 +2,10 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "godan/docs"
 	"godan/internal/config"
 	"godan/internal/handler"
 	"godan/internal/middleware"
@@ -19,7 +22,10 @@ func Setup(cfg *config.Config) *gin.Engine {
 	r.Use(middleware.Recovery())
 	r.Use(middleware.Logger())
 	r.Use(middleware.CORS())
-	r.Use(middleware.RateLimit(100, 60*time.Second, "ip")) // 全局限流: 100 req/min per IP
+	r.Use(middleware.RateLimit(100, 60*time.Second, "ip"))
+
+	// Swagger
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler)) // 全局限流: 100 req/min per IP
 
 	store, err := storage.New(&cfg.Storage)
 	if err != nil {

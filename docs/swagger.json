@@ -1,0 +1,14 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "仿B站视频分享平台 API 文档",
+        "title": "GoDan API",
+        "contact": {
+            "name": "GoDan"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {}
+}
