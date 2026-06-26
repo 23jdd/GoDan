@@ -7,15 +7,16 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig `mapstructure:"server"`
-	Log    LogConfig    `mapstructure:"log"`
-	MySQL  MySQLConfig  `mapstructure:"mysql"`
-	Redis  RedisConfig  `mapstructure:"redis"`
-	JWT    JWTConfig    `mapstructure:"jwt"`
-	Code   CodeConfig   `mapstructure:"code"`
+	Server         ServerConfig  `mapstructure:"server"`
+	Log            LogConfig     `mapstructure:"log"`
+	MySQL          MySQLConfig   `mapstructure:"mysql"`
+	Redis          RedisConfig   `mapstructure:"redis"`
+	JWT            JWTConfig     `mapstructure:"jwt"`
+	Code           CodeConfig    `mapstructure:"code"`
 	Storage        StorageConfig `mapstructure:"storage"`
 	MongoDB        MongoDBConfig `mapstructure:"mongodb"`
 	SensitiveWords []string      `mapstructure:"sensitive_words"`
+	Stmp           StmpConfig    `mapstructure:"stmp"`
 }
 
 type ServerConfig struct {
@@ -45,6 +46,12 @@ type MySQLConfig struct {
 	MaxOpenConns    int    `mapstructure:"max_open_conns"`
 	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
 	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"`
+}
+type StmpConfig struct {
+	From     string `mapstructure:"from"`
+	Password string `mapstructure:"password"`
+	Host     string `mapstructure:"host"`
+	Port     string `mapstructure:"port"`
 }
 
 func (m MySQLConfig) DSN() string {
@@ -78,9 +85,9 @@ type CodeConfig struct {
 }
 
 type StorageConfig struct {
-	Type  string            `mapstructure:"type"`
+	Type  string             `mapstructure:"type"`
 	Local LocalStorageConfig `mapstructure:"local"`
-	MinIO MinIOConfig       `mapstructure:"minio"`
+	MinIO MinIOConfig        `mapstructure:"minio"`
 }
 
 type LocalStorageConfig struct {
