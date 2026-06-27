@@ -214,3 +214,5 @@
 - [ ] 数据库 ER 图与表结构文档
 - [ ] 部署运维手册
 - [ ] 开发指南（本地环境搭建、代码规范、Git 工作流）
+## 阶段十二：页面
+使用 Vue3+vite+AntDesign vue+ArtPlayer,仿bilibili ui界面
