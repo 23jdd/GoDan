@@ -8,7 +8,7 @@ import (
 	"github.com/jordan-wright/email"
 )
 
-// Configured 是否已配置可发送邮件的最小项（host、from）。
+
 type Client struct {
 	From     string
 	Password string
