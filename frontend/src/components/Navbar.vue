@@ -3,37 +3,62 @@
     <div class="nav-inner">
       <div class="nav-left">
         <router-link to="/" class="logo">GoDan</router-link>
-        <router-link to="/live" class="nav-link">直播</router-link>
-        <router-link to="/timeline" class="nav-link">动态</router-link>
+        <nav class="nav-links">
+          <router-link v-for="item in links" :key="item.to" :to="item.to" class="nav-link">
+            {{ item.label }}
+          </router-link>
+        </nav>
       </div>
+
       <div class="nav-center">
-        <el-input v-model="keyword" placeholder="搜索视频..." class="search-input" @keyup.enter="doSearch" clearable>
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-      </div>
-      <div class="nav-right">
-        <el-button type="primary" size="small" @click="$router.push('/upload')">
-          <el-icon><Upload /></el-icon> 投稿
-        </el-button>
-        <el-dropdown v-if="isLogin" trigger="click">
-          <el-avatar :size="36" :src="avatar" class="avatar-cursor">{{ username?.[0] }}</el-avatar>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="$router.push(`/user/${userId}`)">个人中心</el-dropdown-item>
-              <el-dropdown-item @click="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
+        <a-input
+          v-model:value="keyword"
+          class="search-input"
+          size="large"
+          placeholder="搜索视频、番剧、UP 主"
+          @pressEnter="doSearch"
+        >
+          <template #prefix>
+            <SearchOutlined />
           </template>
-        </el-dropdown>
-        <el-button v-else size="small" @click="$router.push('/login')">登录</el-button>
+        </a-input>
+      </div>
+
+      <div class="nav-right">
+        <a-button type="primary" size="large" class="publish-btn" @click="$router.push('/upload')">
+          <template #icon>
+            <PlusOutlined />
+          </template>
+          投稿
+        </a-button>
+
+        <a-dropdown v-if="isLogin" placement="bottomRight">
+          <div class="user-chip">
+            <a-avatar :size="42" :src="avatar">{{ username?.[0] }}</a-avatar>
+            <div class="user-meta">
+              <strong>{{ username }}</strong>
+              <span>创作中心</span>
+            </div>
+          </div>
+          <template #overlay>
+            <a-menu>
+              <a-menu-item key="profile" @click="$router.push(`/user/${userId}`)">个人中心</a-menu-item>
+              <a-menu-item key="timeline" @click="$router.push('/timeline')">我的动态</a-menu-item>
+              <a-menu-item key="logout" @click="logout">退出登录</a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
+
+        <a-button v-else size="large" @click="$router.push('/login')">登录</a-button>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Upload } from '@element-plus/icons-vue'
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons-vue'
 
 const router = useRouter()
 const keyword = ref('')
@@ -41,12 +66,18 @@ const username = ref('')
 const avatar = ref('')
 const userId = ref(0)
 
+const links = [
+  { to: '/', label: '首页' },
+  { to: '/live', label: '直播' },
+  { to: '/timeline', label: '动态' },
+]
+
 const isLogin = computed(() => !!localStorage.getItem('access_token'))
 
 onMounted(() => {
   username.value = localStorage.getItem('username') || ''
   avatar.value = localStorage.getItem('avatar') || ''
-  userId.value = +localStorage.getItem('user_id') || 0
+  userId.value = Number(localStorage.getItem('user_id') || 0)
 })
 
 function doSearch() {
@@ -61,13 +92,119 @@ function logout() {
 </script>
 
 <style scoped>
-.navbar { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid var(--border); height: 64px; }
-.nav-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; height: 100%; padding: 0 16px; gap: 24px; }
-.nav-left { display: flex; align-items: center; gap: 20px; }
-.logo { font-size: 24px; font-weight: 700; color: var(--primary); }
-.nav-link { font-size: 14px; color: var(--text-secondary); }
-.nav-link:hover { color: var(--primary); }
-.nav-center { flex: 1; max-width: 480px; }
-.nav-right { display: flex; align-items: center; gap: 12px; }
-.avatar-cursor { cursor: pointer; }
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.nav-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 74px;
+  padding: 14px 24px;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.logo {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fb7299;
+}
+
+.nav-links {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-link {
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.nav-link.router-link-exact-active,
+.nav-link:hover {
+  color: #111827;
+  background: rgba(251, 114, 153, 0.1);
+}
+
+.nav-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.search-input {
+  width: min(100%, 640px);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.publish-btn {
+  background: linear-gradient(135deg, #fb7299, #ff8fab);
+  border: none;
+  box-shadow: 0 16px 30px rgba(251, 114, 153, 0.22);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.user-meta strong {
+  font-size: 14px;
+}
+
+.user-meta span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 960px) {
+  .nav-inner {
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 16px;
+  }
+
+  .nav-left,
+  .nav-center,
+  .nav-right {
+    width: 100%;
+  }
+
+  .nav-center {
+    order: 3;
+  }
+
+  .nav-right {
+    justify-content: flex-end;
+  }
+}
 </style>

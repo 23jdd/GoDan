@@ -1,13 +1,19 @@
 <template>
-  <div class="video-card" @click="$router.push(`/video/${data.id}`)">
+  <div class="video-card card-surface" @click="$router.push(`/video/${data.id}`)">
     <div class="cover-wrap">
-      <img :src="data.cover_url || '/placeholder.png'" class="cover" />
-      <span class="duration">{{ formatDuration(data.duration) }}</span>
+      <img :src="data.cover_url" class="cover" />
+      <div class="cover-overlay">
+        <span class="pill">{{ data.category }}</span>
+        <span class="duration">{{ formatDuration(data.duration) }}</span>
+      </div>
     </div>
+
     <div class="info">
-      <div class="title">{{ data.title }}</div>
+      <h3 class="title">{{ data.title }}</h3>
+      <p class="author">{{ data.author?.username || data.username || 'GoDan 创作者' }}</p>
       <div class="meta">
-        <span>{{ data.play_count || 0 }} 播放 · {{ data.like_count || 0 }} 点赞</span>
+        <span>{{ formatCount(data.play_count) }} 播放</span>
+        <span>{{ formatCount(data.danmaku_count || data.like_count) }} 弹幕</span>
       </div>
     </div>
   </div>
@@ -22,15 +28,84 @@ function formatDuration(s) {
   const sec = s % 60
   return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
 }
+
+function formatCount(value) {
+  if (!value) return '0'
+  if (value >= 10000) return `${(value / 10000).toFixed(1)}万`
+  return String(value)
+}
 </script>
 
 <style scoped>
-.video-card { cursor: pointer; transition: transform .2s; }
-.video-card:hover { transform: translateY(-4px); }
-.cover-wrap { position: relative; border-radius: 6px; overflow: hidden; background: #eee; }
-.cover { width: 100%; aspect-ratio: 16/9; display: block; object-fit: cover; }
-.duration { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.7); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
-.info { padding: 8px 0; }
-.title { font-size: 14px; font-weight: 500; line-height: 1.4; height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.meta { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+.video-card {
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.video-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 48px rgba(17, 24, 39, 0.12);
+}
+
+.cover-wrap {
+  position: relative;
+  overflow: hidden;
+  background: #dbeafe;
+}
+
+.cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  object-fit: cover;
+}
+
+.cover-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.75));
+}
+
+.pill,
+.duration {
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.info {
+  padding: 14px;
+}
+
+.title {
+  font-size: 16px;
+  line-height: 1.45;
+  min-height: 46px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.author {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
 </style>

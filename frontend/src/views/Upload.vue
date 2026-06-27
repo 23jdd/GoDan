@@ -1,53 +1,59 @@
 <template>
-  <div>
-    <div class="page-title">视频投稿</div>
-    <el-card style="max-width:700px;margin:0 auto">
-      <!-- Select file -->
+  <div class="upload-page">
+    <section class="page-header">
+      <h1>视频投稿</h1>
+      <p>延续 B 站投稿流程的熟悉感，同时保留 GoDan 自己更轻快的视觉表达。</p>
+    </section>
+
+    <section class="upload-shell card-surface">
       <div v-if="!uploadId && !videoSubmitted" class="upload-step">
-        <h3>选择视频文件</h3>
-        <el-upload drag :auto-upload="false" :on-change="onFileSelected" accept="video/*">
-          <el-icon size="48"><UploadFilled /></el-icon>
-          <div>拖拽或点击选择视频文件</div>
-          <div class="tip">支持 mp4, avi, mov, mkv, flv, webm</div>
-        </el-upload>
-        <div v-if="file" style="margin-top:16px">
-          <p>文件: {{ file.name }} ({{ (file.size / 1024 / 1024).toFixed(1) }} MB)</p>
-          <el-button type="primary" @click="initUploadAction" :loading="loading">开始上传</el-button>
+        <a-upload-dragger :before-upload="beforeUpload" :show-upload-list="false" accept="video/*">
+          <p class="ant-upload-drag-icon">
+            <InboxOutlined />
+          </p>
+          <p class="upload-title">拖拽视频到这里，或点击选择文件</p>
+          <p class="upload-tip">支持 mp4、mov、mkv、webm，当前演示支持分片上传流程。</p>
+        </a-upload-dragger>
+
+        <div v-if="file" class="file-summary">
+          <strong>{{ file.name }}</strong>
+          <span>{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span>
+          <a-button type="primary" :loading="loading" @click="initUploadAction">开始上传</a-button>
         </div>
       </div>
 
-      <!-- Upload progress -->
-      <div v-if="uploadId && !videoSubmitted" class="upload-step">
-        <h3>正在上传...</h3>
-        <el-progress :percentage="progress" :text-inside="true" :stroke-width="20" />
-        <p style="text-align:center;margin-top:8px;color:#999">分片 {{ uploadedChunks }}/{{ chunkCount }}</p>
+      <div v-if="uploadId && !videoSubmitted && !readyToComplete" class="upload-step">
+        <h3>正在上传视频</h3>
+        <a-progress :percent="progress" />
+        <p class="progress-text">已上传分片 {{ uploadedChunks }}/{{ chunkCount }}</p>
       </div>
 
-      <!-- Complete -->
-      <div v-if="videoSubmitted" class="upload-step">
-        <el-result icon="success" title="投稿成功" sub-title="视频已提交，审核通过后即可展示">
-          <template #extra>
-            <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
-          </template>
-        </el-result>
-      </div>
-
-      <!-- Metadata form (after upload) -->
-      <div v-if="readyToComplete" class="upload-step">
+      <div v-if="readyToComplete && !videoSubmitted" class="upload-step meta-form">
         <h3>填写视频信息</h3>
-        <el-input v-model="title" placeholder="视频标题" maxlength="200" style="margin-bottom:12px" />
-        <el-input v-model="description" type="textarea" :rows="3" placeholder="视频简介" style="margin-bottom:12px" />
-        <el-button type="primary" @click="completeUploadAction" :loading="loading">提交发布</el-button>
+        <a-input v-model:value="title" size="large" placeholder="视频标题" />
+        <a-textarea v-model:value="description" :rows="4" placeholder="简介、亮点、分区说明..." />
+        <a-button type="primary" size="large" :loading="loading" @click="completeUploadAction">提交发布</a-button>
       </div>
-    </el-card>
+
+      <a-result
+        v-if="videoSubmitted"
+        status="success"
+        title="投稿成功"
+        sub-title="视频信息已经提交，后续接入审核后即可走真实发布链路。"
+      >
+        <template #extra>
+          <a-button type="primary" @click="$router.push('/')">返回首页</a-button>
+        </template>
+      </a-result>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { message } from 'ant-design-vue'
+import { InboxOutlined } from '@ant-design/icons-vue'
 import * as api from '@/api'
-import { UploadFilled } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 
 const CHUNK_SIZE = 5 << 20
 const file = ref(null)
@@ -61,9 +67,13 @@ const loading = ref(false)
 const title = ref('')
 const description = ref('')
 
-function onFileSelected(f) { file.value = f.raw }
+function beforeUpload(rawFile) {
+  file.value = rawFile
+  return false
+}
 
 async function initUploadAction() {
+  if (!file.value) return
   loading.value = true
   const res = await api.initUpload({ filename: file.value.name, file_size: file.value.size })
   uploadId.value = res.data.upload_id
@@ -89,15 +99,60 @@ async function uploadAllChunks() {
 }
 
 async function completeUploadAction() {
-  if (!title.value) return ElMessage.warning('请输入标题')
+  if (!title.value) return message.warning('请输入标题')
   loading.value = true
   await api.completeUpload({ upload_id: uploadId.value, title: title.value, description: description.value })
-  await api.publishVideo(uploadId.value) // try auto-publish (admin review in prod)
+  await api.publishVideo(uploadId.value)
   videoSubmitted.value = true
+  loading.value = false
 }
 </script>
 
 <style scoped>
-.upload-step h3 { margin-bottom: 16px; }
-.tip { font-size: 12px; color: #ccc; }
+.upload-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.page-header h1 {
+  font-size: 32px;
+}
+
+.page-header p {
+  margin-top: 10px;
+  color: var(--text-secondary);
+}
+
+.upload-shell {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.upload-step h3 {
+  margin-bottom: 16px;
+  font-size: 24px;
+}
+
+.upload-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.upload-tip,
+.progress-text {
+  margin-top: 10px;
+  color: var(--text-secondary);
+}
+
+.file-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.meta-form {
+  display: grid;
+  gap: 14px;
+}
 </style>
